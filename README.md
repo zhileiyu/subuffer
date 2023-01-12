@@ -4,6 +4,7 @@ A doublebuffer with generic wirten in go. In chinese su means fast!
 用go语言实现的双缓冲buffer，尤其适合读多写少的常见。
 
 使用示例：
+
 Example:
 
 ```go
