@@ -2,9 +2,7 @@ package subuffer
 
 import (
 	"reflect"
-	"sync"
 	"sync/atomic"
-	"unsafe"
 )
 
 type Buffer interface {
@@ -13,10 +11,9 @@ type Buffer interface {
 }
 
 type SuBuffer[T Buffer] struct {
-	front T
-	back  T
-	once  sync.Once
-	mux   sync.Mutex
+	first  T
+	second T
+	now    *int32
 }
 
 func New[T Buffer](b T) *SuBuffer[T] {
@@ -24,33 +21,29 @@ func New[T Buffer](b T) *SuBuffer[T] {
 		//must use prt type to create subuffer
 		return nil
 	}
+	var zero int32
 	return &SuBuffer[T]{
-		front: createBuffer(b),
-		back:  createBuffer(b),
+		first:  createBuffer(b),
+		second: createBuffer(b),
+		now:    &zero,
 	}
 }
 
 func (d *SuBuffer[T]) Buffer() T {
-	return d.front
+	if atomic.LoadInt32(d.now) == 0 {
+		return d.first
+	} else {
+		return d.second
+	}
 }
 
 func (d *SuBuffer[T]) Update(data interface{}) {
-	d.once.Do(func() {
-		d.front.Update(data)
-	})
-	d.mux.Lock()
-	defer d.mux.Unlock()
-	d.back.Update(data)
-	d.swapFrontAndBack()
-}
-
-func (d *SuBuffer[T]) swapFrontAndBack() {
-	bPtr := reflect.ValueOf(d.back).UnsafePointer()
-	bPtr0 := (*unsafe.Pointer)(unsafe.Pointer(&d.back))
-	fPtr := reflect.ValueOf(d.front).UnsafePointer()
-	fPtr0 := (*unsafe.Pointer)(unsafe.Pointer(&d.front))
-	atomic.StorePointer(fPtr0, bPtr)
-	atomic.StorePointer(bPtr0, fPtr)
+	if atomic.CompareAndSwapInt32(d.now, 0, 1) {
+		d.second.Update(data)
+	} else {
+		d.first.Update(data)
+		atomic.SwapInt32(d.now, 0)
+	}
 }
 
 func createBuffer[T Buffer](b T) T {
