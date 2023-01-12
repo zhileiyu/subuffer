@@ -9,7 +9,7 @@ import (
 
 type Buffer interface {
 	Update(interface{})
-	Init()
+	Clear()
 }
 
 type SuBuffer[T Buffer] struct {
@@ -56,6 +56,6 @@ func (d *SuBuffer[T]) swapFrontAndBack() {
 func createBuffer[T Buffer](b T) T {
 	bt := reflect.ValueOf(b).Elem().Type()
 	t := reflect.New(bt).Interface().(T)
-	t.Init()
+	t.Clear()
 	return t
 }
