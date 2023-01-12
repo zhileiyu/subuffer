@@ -12,6 +12,8 @@ func (n *Name) Update(data interface{}) {
 	n.Name = data.(string)
 }
 
+func (n *Name) Clear() {}
+
 func BenchmarkSuBuffer_Update(b *testing.B) {
 	doubleBuf := New(&Name{})
 	b.RunParallel(func(pb *testing.PB) {
